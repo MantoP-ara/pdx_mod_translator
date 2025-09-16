@@ -88,7 +88,7 @@ class TranslationGUI(ctk.CTk):
         self.consistency_window = None  # 일관성 검사기 창 참조
 
         self.api_lang_options_en = ('English', 'Korean', 'Simplified Chinese', 'French', 'German', 'Spanish', 'Japanese', 'Portuguese', 'Russian', 'Turkish')
-        self.available_models = ['gemini-2.5-flash-preview-05-20', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash','gemini-2.5-pro-preview-06-05']
+        self.available_models = ['gemini-2.5-pro','gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
         if self.available_models:
             self.model_name_var.set(self.available_models[0])
 
