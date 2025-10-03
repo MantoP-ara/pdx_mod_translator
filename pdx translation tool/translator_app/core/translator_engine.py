@@ -269,7 +269,13 @@ class TranslatorEngine:
         try:
             # API 키 설정 (타임아웃 추가)
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(self.selected_model_name)
+
+            # 모델 이름에 'models/' 접두사가 없으면 추가
+            model_name = self.selected_model_name
+            if not model_name.startswith('models/'):
+                model_name = f'models/{model_name}'
+
+            self.model = genai.GenerativeModel(model_name)
             
             # API 연결 테스트
             test_response = self.model.generate_content(
