@@ -88,7 +88,7 @@ class TranslationGUI(ctk.CTk):
         self.consistency_window = None  # 일관성 검사기 창 참조
 
         self.api_lang_options_en = ('English', 'Korean', 'Simplified Chinese', 'French', 'German', 'Spanish', 'Japanese', 'Portuguese', 'Russian', 'Turkish')
-        self.available_models = ['gemini-2.5-pro','gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
+        self.available_models = ['gemini-3.0-pro','gemini-3.0-flash','gemini-2.5-pro','gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
         if self.available_models:
             self.model_name_var.set(self.available_models[0])
 
@@ -863,4 +863,5 @@ Text to translate:
         """번역 통계 업데이트 (레거시 지원용)"""
         # 대시보드가 열려있으면 전달
         if self.dashboard_window and self.dashboard_window.winfo_exists():
+
             self.dashboard_window.add_file_stat(filename, stats)
