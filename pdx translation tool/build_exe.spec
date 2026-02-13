@@ -1,6 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+import sys
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
+
+# Collect CustomTkinter assets
+ctk_datas = collect_data_files('customtkinter')
 
 a = Analysis(
     ['run_translator.py'],
@@ -8,13 +14,15 @@ a = Analysis(
     binaries=[],
     datas=[
         ('translator_app', 'translator_app'),
-    ],
+    ] + ctk_datas,
     hiddenimports=[
         'customtkinter',
         'google.generativeai',
+        'google.ai.generativelanguage',
         'yaml',
         'tkinter',
         'PIL._tkinter_finder',
+        'pkg_resources.py2_warn',
     ],
     hookspath=[],
     hooksconfig={},
