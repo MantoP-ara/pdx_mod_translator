@@ -54,7 +54,7 @@ LANGUAGES = {
         "api_key_label": "Gemini API 키:",
         "api_key_tooltip": "Google AI Studio에서 발급받은 Gemini API 키를 입력하세요.\n예: AIzaSy...",
         "model_label": "번역 모델:",
-        "model_tooltip": "번역에 사용할 Gemini 모델을 선택합니다.\n모델마다 성능과 비용이 다를 수 있습니다.",
+        "model_tooltip": "번역에 사용할 Gemini 모델을 선택하거나,\n목록에 없는 모델명을 직접 입력할 수 있습니다.\n(예: gemini-2.0-flash-lite)",
         "temperature_label": "템퍼러쳐:",
         "temperature_tooltip": "번역의 무작위성 제어 (0.0=일관적, 1.0=창의적)",
 
@@ -437,7 +437,7 @@ LANGUAGES = {
         "api_key_label": "Gemini API Key:",
         "api_key_tooltip": "Enter the Gemini API key issued from Google AI Studio.\nExample: AIzaSy...",
         "model_label": "Translation Model:",
-        "model_tooltip": "Select the Gemini model to use for translation.\nPerformance and cost may vary by model.",
+        "model_tooltip": "Select a Gemini model or type a custom model name\nnot in the list.\n(e.g., gemini-2.0-flash-lite)",
         "temperature_label": "Temperature:",
         "temperature_tooltip": "Controls randomness in translation (0.0=deterministic, 1.0=creative)",
 
@@ -882,7 +882,7 @@ LANGUAGES = {
         "api_key_label": "Gemini API 密钥：",
         "api_key_tooltip": "请输入从 Google AI Studio 获取的 Gemini API 密钥。\n例如：AIzaSy...",
         "model_label": "翻译模型：",
-        "model_tooltip": "选择用于翻译的 Gemini 模型。\n不同模型的性能和成本可能有所不同。",
+        "model_tooltip": "选择 Gemini 模型，或直接输入列表中\n没有的自定义模型名称。\n（例如：gemini-2.0-flash-lite）",
         "temperature_label": "温度:",
         "temperature_tooltip": "控制翻译的随机性（0.0=确定性，1.0=创造性）",
 

@@ -20,7 +20,7 @@ class APIModelPanel(ctk.CTkFrame):
 
         self.model_label_widget = ctk.CTkLabel(self)
         self.model_label_widget.grid(row=2, column=0, sticky="w", padx=10, pady=5)
-        self.model_combo_widget = ctk.CTkComboBox(self, variable=self.main_app.model_name_var, values=self.main_app.available_models, state='readonly')
+        self.model_combo_widget = ctk.CTkComboBox(self, variable=self.main_app.model_name_var, values=self.main_app.available_models)
         self.model_combo_widget.grid(row=2, column=1, columnspan=2, sticky="ew", padx=10, pady=5)
         self.model_combo_tooltip = Tooltip(self.model_combo_widget, "")
 
