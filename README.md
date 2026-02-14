@@ -80,17 +80,38 @@ Paradox 게임 모드 번역을 위한 강력한 GUI 애플리케이션입니다
 
 ## 설치 및 실행
 
-### 필수 요구사항
+### 옵션 1: 미리 빌드된 실행 파일 (권장)
+- Release 페이지에서 `.EXE` 파일을 다운로드하여 실행
+
+### 옵션 2: 소스 코드로 실행
+
+#### 필수 요구사항
 ```bash
-pip install customtkinter google-generativeai
+pip install -r "pdx translation tool/requirements.txt"
 ```
 
-### 실행 방법
+#### 실행 방법
 ```bash
 python "pdx translation tool/run_translator.py"
 ```
 
--혹은 Release에서 .EXE파일을 받아 실행
+### 옵션 3: 직접 EXE 파일 빌드
+
+자세한 빌드 방법은 [`pdx translation tool/BUILD.md`](pdx%20translation%20tool/BUILD.md)를 참조하세요.
+
+#### 빠른 빌드 (Windows)
+```cmd
+cd "pdx translation tool"
+build_exe.bat
+```
+
+#### 빠른 빌드 (Linux/macOS)
+```bash
+cd "pdx translation tool"
+./build_exe.sh
+```
+
+빌드된 실행 파일은 `dist/PDX_Mod_Translator.exe` (Windows) 또는 `dist/PDX_Mod_Translator` (Linux/macOS)에 생성됩니다.
 
 ## 사용 방법
 

@@ -80,17 +80,38 @@ A powerful GUI application for translating Paradox game mods. It leverages the G
 
 ## Installation and Execution
 
-### Prerequisites
+### Option 1: Pre-built Executable (Recommended)
+- Download the `.EXE` file from the Release page and run it
+
+### Option 2: Run from Source Code
+
+#### Prerequisites
 ```bash
-pip install customtkinter google-generativeai
+pip install -r "pdx translation tool/requirements.txt"
 ```
 
-### How to Run
+#### How to Run
 ```bash
 python "pdx translation tool/run_translator.py"
 ```
 
--Or, download and run the .EXE file from the Release section.
+### Option 3: Build EXE File Yourself
+
+For detailed build instructions, see [`pdx translation tool/BUILD.md`](pdx%20translation%20tool/BUILD.md).
+
+#### Quick Build (Windows)
+```cmd
+cd "pdx translation tool"
+build_exe.bat
+```
+
+#### Quick Build (Linux/macOS)
+```bash
+cd "pdx translation tool"
+./build_exe.sh
+```
+
+The built executable will be created at `dist/PDX_Mod_Translator.exe` (Windows) or `dist/PDX_Mod_Translator` (Linux/macOS).
 
 ## How to Use
 

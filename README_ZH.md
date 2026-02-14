@@ -80,17 +80,38 @@
 
 ## 安装与运行
 
-### 系统要求
+### 选项 1：预构建可执行文件（推荐）
+- 从 Release 页面下载 `.EXE` 文件并运行
+
+### 选项 2：从源代码运行
+
+#### 系统要求
 ```bash
-pip install customtkinter google-generativeai
+pip install -r "pdx translation tool/requirements.txt"
 ```
 
-### 运行方法
+#### 运行方法
 ```bash
 python "pdx translation tool/run_translator.py"
 ```
 
--或者，从 Release 部分下载并运行 .EXE 文件。
+### 选项 3：自己构建 EXE 文件
+
+有关详细的构建说明，请参阅 [`pdx translation tool/BUILD.md`](pdx%20translation%20tool/BUILD.md)。
+
+#### 快速构建（Windows）
+```cmd
+cd "pdx translation tool"
+build_exe.bat
+```
+
+#### 快速构建（Linux/macOS）
+```bash
+cd "pdx translation tool"
+./build_exe.sh
+```
+
+构建的可执行文件将在 `dist/PDX_Mod_Translator.exe`（Windows）或 `dist/PDX_Mod_Translator`（Linux/macOS）生成。
 
 ## 使用方法
 
