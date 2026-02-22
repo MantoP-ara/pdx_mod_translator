@@ -80,6 +80,10 @@ class TranslationGUI(ctk.CTk):
         self.glossary_files = []
         self.stop_event = threading.Event()
         self.loaded_prompt_from_config = None
+        self.loaded_prefill_from_config = ""
+        self.loaded_system_instruction_from_config = ""
+        self.loaded_model_role_text_from_config = ""
+        self.old_translation_folder_var = tk.StringVar()
 
         self.translation_stats = []  # 대시보드가 닫혀있어도 통계 수집
         self.translation_session_start = None
@@ -148,6 +152,15 @@ Text to translate:
         if self.loaded_prompt_from_config:
             # 지연 호출을 통해 UI가 완전히 렌더링된 후 프롬프트 설정
             self.after(100, lambda: self.prompt_glossary_panel.set_prompt_text(self.loaded_prompt_from_config))
+
+        if self.loaded_prefill_from_config:
+            self.after(100, lambda: self.prompt_glossary_panel.set_prefill_text(self.loaded_prefill_from_config))
+
+        if self.loaded_system_instruction_from_config:
+            self.after(100, lambda: self.prompt_glossary_panel.set_system_instruction_text(self.loaded_system_instruction_from_config))
+
+        if self.loaded_model_role_text_from_config:
+            self.after(100, lambda: self.prompt_glossary_panel.set_model_role_text(self.loaded_model_role_text_from_config))
 
         self._update_glossary_list_ui_data()
         self._update_status_ui("status_waiting", task_type="system")
@@ -251,9 +264,13 @@ Text to translate:
             "max_retries_var": self.max_retries_var,
             "selected_game_var": self.selected_game_var,
             "enable_live_preview_var": self.enable_live_preview,
+            "old_translation_folder_var": self.old_translation_folder_var,
         }
-        loaded_prompt, loaded_glossary_paths = self.settings_manager.load_settings(app_vars_for_settings)
+        loaded_prompt, loaded_glossary_paths, loaded_prefill, loaded_system_instruction, loaded_model_role_text = self.settings_manager.load_settings(app_vars_for_settings)
         self.loaded_prompt_from_config = loaded_prompt
+        self.loaded_prefill_from_config = loaded_prefill
+        self.loaded_system_instruction_from_config = loaded_system_instruction
+        self.loaded_model_role_text_from_config = loaded_model_role_text
         self.glossary_files = []
         for g_path in loaded_glossary_paths:
             if os.path.exists(g_path):
@@ -281,12 +298,19 @@ Text to translate:
             "max_retries_var": self.max_retries_var,
             "selected_game_var": self.selected_game_var,
             "enable_live_preview_var": self.enable_live_preview,
+            "old_translation_folder_var": self.old_translation_folder_var,
         }
         current_prompt_text = self.prompt_glossary_panel.get_prompt_text() if hasattr(self, 'prompt_glossary_panel') else self.default_prompt_template_str
+        current_prefill_text = self.prompt_glossary_panel.get_prefill_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        current_system_instruction = self.prompt_glossary_panel.get_system_instruction_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        current_model_role_text = self.prompt_glossary_panel.get_model_role_text() if hasattr(self, 'prompt_glossary_panel') else ""
         current_glossary_paths = [g["path"] for g in self.glossary_files]
         current_appearance_theme = ctk.get_appearance_mode()
         self.settings_manager.save_settings(
-            app_vars_for_settings, current_prompt_text, current_glossary_paths, current_appearance_theme
+            app_vars_for_settings, current_prompt_text, current_glossary_paths, current_appearance_theme,
+            prefill_text=current_prefill_text,
+            system_instruction=current_system_instruction,
+            model_role_text=current_model_role_text
         )
         self.log_message("settings_saved_log")
 
@@ -665,6 +689,9 @@ Text to translate:
             return
 
         prompt_text_to_use = self.prompt_glossary_panel.get_prompt_text() if hasattr(self, 'prompt_glossary_panel') else self.default_prompt_template_str
+        prefill_text_to_use = self.prompt_glossary_panel.get_prefill_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        system_instruction_to_use = self.prompt_glossary_panel.get_system_instruction_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        model_role_text_to_use = self.prompt_glossary_panel.get_model_role_text() if hasattr(self, 'prompt_glossary_panel') else ""
 
         # 항상 stats_callback을 설정 (main_window의 메서드로)
         success = self.translator_engine.start_translation_process(
@@ -688,8 +715,11 @@ Text to translate:
             skip_already_translated=self.skip_already_translated_var.get(),
             max_retries=self.max_retries_var.get(),
             preview_callback=self.add_preview_line if (hasattr(self, 'live_preview_panel') and self.enable_live_preview.get()) else None,
-            stats_callback=self.collect_translation_stats,  # 항상 메인 윈도우의 메서드 사용
-            enable_backup=self.enable_backup_var.get()
+            stats_callback=self.collect_translation_stats,
+            enable_backup=self.enable_backup_var.get(),
+            prefill_text=prefill_text_to_use,
+            system_instruction=system_instruction_to_use,
+            model_role_text=model_role_text_to_use
         )
 
     def stop_translation(self):
@@ -697,6 +727,64 @@ Text to translate:
         if self.translator_engine.translation_thread and self.translator_engine.translation_thread.is_alive():
             if self.translator_engine.request_stop_translation():
                 action_taken = True
+
+    def retry_failed_translation(self):
+        """실패한 파일들만 재번역"""
+        if not self.translator_engine.has_failed_files():
+            messagebox.showinfo(self.texts.get("info_title"), self.texts.get("no_failed_files", "No failed files to retry."))
+            return
+
+        is_translation_busy = self.translator_engine.translation_thread and self.translator_engine.translation_thread.is_alive()
+        if is_translation_busy:
+            messagebox.showwarning(self.texts.get("warn_title"), self.texts.get("warn_already_processing"))
+            return
+
+        if hasattr(self, 'log_panel'):
+            self.log_panel.clear_log()
+
+        self._update_glossary_list_ui_data()
+        combined_glossary = self._get_combined_glossary_content()
+        output_dir = self.output_folder_var.get()
+        if not output_dir:
+            messagebox.showerror(self.texts.get("error_title"), self.texts.get("error_output_folder_needed"))
+            return
+
+        prompt_text_to_use = self.prompt_glossary_panel.get_prompt_text() if hasattr(self, 'prompt_glossary_panel') else self.default_prompt_template_str
+        prefill_text_to_use = self.prompt_glossary_panel.get_prefill_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        system_instruction_to_use = self.prompt_glossary_panel.get_system_instruction_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        model_role_text_to_use = self.prompt_glossary_panel.get_model_role_text() if hasattr(self, 'prompt_glossary_panel') else ""
+
+        failed_count = len(self.translator_engine.get_failed_files())
+        self.log_message("log_retry_failed_start", failed_count)
+
+        self.translator_engine.start_translation_process(
+            api_key=self.api_key_var.get().strip(),
+            selected_model_name=self.model_name_var.get(),
+            input_folder=self.input_folder_var.get(),
+            output_folder=output_dir,
+            source_lang_api=self.source_lang_for_api_var.get(),
+            target_lang_api=self.target_lang_for_api_var.get(),
+            prompt_template=prompt_text_to_use,
+            glossary_content=combined_glossary,
+            batch_size_val=self.batch_size_var.get(),
+            max_tokens_val=self.max_tokens_var.get(),
+            delay_val=self.delay_between_batches_var.get(),
+            temperature_val=self.temperature_var.get(),
+            max_workers_val=self.max_workers_var.get(),
+            keep_identifier_val=self.keep_lang_def_unchanged_var.get(),
+            check_internal_lang_val=self.check_internal_lang_var.get(),
+            split_large_files_threshold=self.split_threshold_var.get(),
+            selected_game=self.selected_game_var.get(),
+            skip_already_translated=self.skip_already_translated_var.get(),
+            max_retries=self.max_retries_var.get(),
+            preview_callback=self.add_preview_line if (hasattr(self, 'live_preview_panel') and self.enable_live_preview.get()) else None,
+            stats_callback=self.collect_translation_stats,
+            enable_backup=self.enable_backup_var.get(),
+            prefill_text=prefill_text_to_use,
+            retry_failed_only=True,
+            system_instruction=system_instruction_to_use,
+            model_role_text=model_role_text_to_use
+        )
 
     def validate_inputs(self):
         def is_valid_int(value_var, min_val, max_val):
@@ -758,6 +846,29 @@ Text to translate:
         menu.add_command(
             label=self.texts.get("open_consistency_checker", "Term Consistency Checker"),
             command=self.open_consistency_checker
+        )
+        
+        # 미번역 재번역 도구
+        menu.add_command(
+            label=self.texts.get("open_retranslation_window_button", "Retranslation Tool"),
+            command=self.open_retranslation_window
+        )
+
+        # 버전 업데이트 번역
+        menu.add_command(
+            label=self.texts.get("version_update_translate_button", "Version Update Translation"),
+            command=self.start_version_update_translation
+        )
+        
+        menu.add_separator()
+        
+        # 실패한 파일 재시도
+        failed_count = len(self.translator_engine.get_failed_files()) if hasattr(self, 'translator_engine') else 0
+        retry_label = self.texts.get("retry_failed_button", "Retry Failed ({0})").format(failed_count)
+        menu.add_command(
+            label=retry_label,
+            command=self.retry_failed_translation,
+            state="normal" if failed_count > 0 else "disabled"
         )
         
         menu.add_separator()
@@ -832,6 +943,97 @@ Text to translate:
             self.consistency_window = None
         
         self.consistency_window.protocol("WM_DELETE_WINDOW", on_close)
+
+    def open_retranslation_window(self):
+        """미번역 재번역 도구 열기"""
+        from .windows.retranslation_window import RetranslationWindow
+        
+        if hasattr(self, 'retranslation_window') and self.retranslation_window and self.retranslation_window.winfo_exists():
+            self.retranslation_window.lift()
+            self.retranslation_window.focus_force()
+            return
+        
+        self.retranslation_window = RetranslationWindow(self, self)
+        
+        def on_close():
+            self.retranslation_window.destroy()
+            self.retranslation_window = None
+        
+        self.retranslation_window.protocol("WM_DELETE_WINDOW", on_close)
+
+    def select_old_translation_folder(self):
+        """기존 번역 폴더 선택"""
+        folder = filedialog.askdirectory(title=self.texts.get("old_translation_folder_title", "Select Old Translation Folder"))
+        if folder:
+            self.old_translation_folder_var.set(folder)
+
+    def start_version_update_translation(self):
+        """버전 업데이트 번역 시작"""
+        if not self.validate_inputs():
+            return
+
+        is_busy = self.translator_engine.translation_thread and self.translator_engine.translation_thread.is_alive()
+        if is_busy:
+            messagebox.showwarning(self.texts.get("warn_title"), self.texts.get("warn_already_processing"))
+            return
+
+        old_translation_folder = self.old_translation_folder_var.get()
+        if not old_translation_folder or not os.path.isdir(old_translation_folder):
+            # 기존 번역 폴더가 없으면 선택 대화상자 표시
+            old_translation_folder = filedialog.askdirectory(
+                title=self.texts.get("old_translation_folder_title", "Select Old Translation Folder")
+            )
+            if not old_translation_folder:
+                return
+            self.old_translation_folder_var.set(old_translation_folder)
+
+        if hasattr(self, 'log_panel'):
+            self.log_panel.clear_log()
+
+        self._update_glossary_list_ui_data()
+        combined_glossary = self._get_combined_glossary_content()
+        output_dir = self.output_folder_var.get()
+        if not output_dir:
+            messagebox.showerror(self.texts.get("error_title"), self.texts.get("error_output_folder_needed"))
+            return
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+        except OSError as e:
+            messagebox.showerror(self.texts.get("error_title"), self.texts.get("error_create_output_folder").format(str(e)))
+            return
+
+        prompt_text_to_use = self.prompt_glossary_panel.get_prompt_text() if hasattr(self, 'prompt_glossary_panel') else self.default_prompt_template_str
+        prefill_text_to_use = self.prompt_glossary_panel.get_prefill_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        system_instruction_to_use = self.prompt_glossary_panel.get_system_instruction_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        model_role_text_to_use = self.prompt_glossary_panel.get_model_role_text() if hasattr(self, 'prompt_glossary_panel') else ""
+
+        self.translator_engine.start_version_update_translation(
+            api_key=self.api_key_var.get().strip(),
+            selected_model_name=self.model_name_var.get(),
+            new_source_folder=self.input_folder_var.get(),
+            old_translation_folder=old_translation_folder,
+            output_folder=output_dir,
+            source_lang_api=self.source_lang_for_api_var.get(),
+            target_lang_api=self.target_lang_for_api_var.get(),
+            prompt_template=prompt_text_to_use,
+            glossary_content=combined_glossary,
+            batch_size_val=self.batch_size_var.get(),
+            max_tokens_val=self.max_tokens_var.get(),
+            delay_val=self.delay_between_batches_var.get(),
+            temperature_val=self.temperature_var.get(),
+            max_workers_val=self.max_workers_var.get(),
+            keep_identifier_val=self.keep_lang_def_unchanged_var.get(),
+            check_internal_lang_val=self.check_internal_lang_var.get(),
+            split_large_files_threshold=self.split_threshold_var.get(),
+            selected_game=self.selected_game_var.get(),
+            max_retries=self.max_retries_var.get(),
+            preview_callback=self.add_preview_line if (hasattr(self, 'live_preview_panel') and self.enable_live_preview.get()) else None,
+            stats_callback=self.collect_translation_stats,
+            enable_backup=self.enable_backup_var.get(),
+            prefill_text=prefill_text_to_use,
+            system_instruction=system_instruction_to_use,
+            model_role_text=model_role_text_to_use
+        )
 
     def toggle_live_preview(self, initial_load=False):
         """실시간 미리보기 토글 및 레이아웃 동적 조정"""

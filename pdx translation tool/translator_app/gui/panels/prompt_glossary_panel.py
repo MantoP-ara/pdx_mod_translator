@@ -11,16 +11,31 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         # --- 메인 그리드 설정 ---
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=0)  # 제목
-        self.grid_rowconfigure(1, weight=1)  # 프롬프트 섹션
-        self.grid_rowconfigure(2, weight=1)  # 용어집 섹션
+        self.grid_rowconfigure(1, weight=1)  # 시스템 역할 섹션
+        self.grid_rowconfigure(2, weight=3)  # 유저 역할 (프롬프트) 섹션
+        self.grid_rowconfigure(3, weight=1)  # 모델 역할 섹션
+        self.grid_rowconfigure(4, weight=2)  # 용어집 섹션
 
         # --- 전체 제목 ---
         self.pg_title_label = ctk.CTkLabel(self, font=ctk.CTkFont(size=14, weight="bold"))
         self.pg_title_label.grid(row=0, column=0, padx=15, pady=(10, 5), sticky="w")
 
-        # --- 프롬프트 프레임 ---
+        # --- 시스템 역할 프레임 ---
+        system_subframe = ctk.CTkFrame(self, fg_color="transparent")
+        system_subframe.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+        system_subframe.grid_columnconfigure(0, weight=1)
+        system_subframe.grid_rowconfigure(1, weight=1)
+
+        self.system_instruction_title_label = ctk.CTkLabel(system_subframe, font=ctk.CTkFont(size=13, weight="bold"))
+        self.system_instruction_title_label.grid(row=0, column=0, sticky="w", pady=(5, 8))
+
+        self.system_instruction_textbox = ctk.CTkTextbox(system_subframe, wrap="word", height=60)
+        self.system_instruction_textbox.grid(row=1, column=0, sticky="nsew")
+        self.system_instruction_textbox_tooltip = Tooltip(self.system_instruction_textbox, "")
+
+        # --- 유저 역할 (프롬프트) 프레임 ---
         prompt_edit_subframe = ctk.CTkFrame(self, fg_color="transparent")
-        prompt_edit_subframe.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+        prompt_edit_subframe.grid(row=2, column=0, padx=10, pady=5, sticky="nsew")
         prompt_edit_subframe.grid_columnconfigure(0, weight=1)
         prompt_edit_subframe.grid_rowconfigure(1, weight=1) # Textbox가 확장되도록 설정
 
@@ -47,9 +62,22 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         self.reset_prompt_btn.pack(side="left", padx=5)
         self.reset_prompt_btn_tooltip = Tooltip(self.reset_prompt_btn, "")
 
+        # --- 모델 역할 프레임 ---
+        model_role_subframe = ctk.CTkFrame(self, fg_color="transparent")
+        model_role_subframe.grid(row=3, column=0, padx=10, pady=5, sticky="nsew")
+        model_role_subframe.grid_columnconfigure(0, weight=1)
+        model_role_subframe.grid_rowconfigure(1, weight=1)
+
+        self.model_role_title_label = ctk.CTkLabel(model_role_subframe, font=ctk.CTkFont(size=13, weight="bold"))
+        self.model_role_title_label.grid(row=0, column=0, sticky="w", pady=(5, 8))
+
+        self.model_role_textbox = ctk.CTkTextbox(model_role_subframe, wrap="word", height=60)
+        self.model_role_textbox.grid(row=1, column=0, sticky="nsew")
+        self.model_role_textbox_tooltip = Tooltip(self.model_role_textbox, "")
+
         # --- 용어집 프레임 ---
         glossary_manage_subframe = ctk.CTkFrame(self, fg_color="transparent")
-        glossary_manage_subframe.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="nsew")
+        glossary_manage_subframe.grid(row=4, column=0, padx=10, pady=(5, 10), sticky="nsew")
         glossary_manage_subframe.grid_columnconfigure(0, weight=1)
         glossary_manage_subframe.grid_rowconfigure(1, weight=1) # ScrollableFrame이 확장되도록 설정
 
@@ -72,6 +100,34 @@ class PromptGlossaryPanel(ctk.CTkFrame):
     def set_prompt_text(self, text):
         self.prompt_textbox.delete("1.0", "end")
         self.prompt_textbox.insert("1.0", text)
+
+    def get_prefill_text(self):
+        """하위 호환을 위해 모델 역할 텍스트 반환"""
+        return self.get_model_role_text()
+
+    def set_prefill_text(self, text):
+        """하위 호환을 위해 모델 역할 텍스트 설정"""
+        self.set_model_role_text(text)
+
+    def get_system_instruction_text(self):
+        """시스템 역할 텍스트 반환"""
+        return self.system_instruction_textbox.get("1.0", "end-1c")
+
+    def set_system_instruction_text(self, text):
+        """시스템 역할 텍스트 설정"""
+        self.system_instruction_textbox.delete("1.0", "end")
+        if text:
+            self.system_instruction_textbox.insert("1.0", text)
+
+    def get_model_role_text(self):
+        """모델 역할 텍스트 반환"""
+        return self.model_role_textbox.get("1.0", "end-1c")
+
+    def set_model_role_text(self, text):
+        """모델 역할 텍스트 설정"""
+        self.model_role_textbox.delete("1.0", "end")
+        if text:
+            self.model_role_textbox.insert("1.0", text)
 
     def update_glossary_list_display(self, glossary_data_list):
         for widget in self.glossary_list_frame.winfo_children():
@@ -108,6 +164,8 @@ class PromptGlossaryPanel(ctk.CTkFrame):
     def update_language(self):
         texts = self.main_app.texts
         self.pg_title_label.configure(text=texts.get("prompt_glossary_frame_title"))
+        self.system_instruction_title_label.configure(text=texts.get("system_instruction_title", "System Instruction"))
+        self.system_instruction_textbox_tooltip.update_text(texts.get("system_instruction_tooltip", "System-level instructions for the model."))
         self.prompt_edit_title_label.configure(text=texts.get("prompt_edit_frame_title"))
         self.prompt_textbox_tooltip.update_text(texts.get("prompt_edit_textbox_tooltip"))
         self.load_prompt_btn.configure(text=texts.get("load_prompt_button"))
@@ -116,6 +174,8 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         self.save_prompt_btn_tooltip.update_text(texts.get("save_prompt_button_tooltip"))
         self.reset_prompt_btn.configure(text=texts.get("reset_prompt_button"))
         self.reset_prompt_btn_tooltip.update_text(texts.get("reset_prompt_button_tooltip"))
+        self.model_role_title_label.configure(text=texts.get("model_role_title", "Model Role (Response Prefix)"))
+        self.model_role_textbox_tooltip.update_text(texts.get("model_role_tooltip", "Text to prepend to the model's response."))
         self.glossary_manage_title_label.configure(text=texts.get("glossary_management_frame_title"))
         self.add_glossary_btn.configure(text=texts.get("add_glossary_button"))
         self.add_glossary_btn_tooltip.update_text(texts.get("add_glossary_button_tooltip"))

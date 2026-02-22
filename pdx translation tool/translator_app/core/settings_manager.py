@@ -16,6 +16,9 @@ class SettingsManager:
         """
         loaded_prompt = None
         loaded_glossaries_paths = []
+        loaded_prefill = ""
+        loaded_system_instruction = ""
+        loaded_model_role_text = ""
         try:
             if os.path.exists(CONFIG_FILE):
                 with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
@@ -47,16 +50,27 @@ class SettingsManager:
 
                 loaded_glossaries_paths = config.get("glossaries", [])
 
+                loaded_prefill = config.get("prefill_text", "")
+                loaded_system_instruction = config.get("system_instruction", "")
+                loaded_model_role_text = config.get("model_role_text", "")
+
+                # old_translation_folder가 있으면 로드
+                if "old_translation_folder_var" in app_vars:
+                    app_vars["old_translation_folder_var"].set(config.get("old_translation_folder", ""))
+
         except Exception as e:
             print(f"설정 로드 오류: {e}") # GUI log_message 대신 print 사용
-        return loaded_prompt, loaded_glossaries_paths
+        return loaded_prompt, loaded_glossaries_paths, loaded_prefill, loaded_system_instruction, loaded_model_role_text
 
-    def save_settings(self, app_vars, current_prompt, glossary_file_paths, current_appearance_mode):
+    def save_settings(self, app_vars, current_prompt, glossary_file_paths, current_appearance_mode, prefill_text="", system_instruction="", model_role_text=""):
         """
         app_vars: UI의 StringVar/IntVar 등을 담은 딕셔너리
         current_prompt: 현재 프롬프트 텍스트
         glossary_file_paths: 현재 용어집 파일 경로 리스트
         current_appearance_mode: 현재 테마 모드 (ctk.get_appearance_mode() 값)
+        prefill_text: 프리필 텍스트 (하위 호환)
+        system_instruction: 시스템 역할 텍스트
+        model_role_text: 모델 역할 텍스트
         """
         config = {
             "ui_language": app_vars["ui_lang_var"].get(),
@@ -79,8 +93,17 @@ class SettingsManager:
             "max_retries": app_vars["max_retries_var"].get(),
             "selected_game": app_vars["selected_game_var"].get(),
             "custom_prompt": current_prompt,
-            "glossaries": glossary_file_paths
+            "glossaries": glossary_file_paths,
+            "prefill_text": prefill_text,
+            "system_instruction": system_instruction,
+            "model_role_text": model_role_text
         }
+        # old_translation_folder가 app_vars에 있으면 저장
+        if "old_translation_folder_var" in app_vars:
+            try:
+                config["old_translation_folder"] = app_vars["old_translation_folder_var"].get()
+            except Exception:
+                pass
         try:
             with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=4, ensure_ascii=False)
