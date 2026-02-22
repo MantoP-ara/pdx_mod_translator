@@ -11,8 +11,9 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         # --- 메인 그리드 설정 ---
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=0)  # 제목
-        self.grid_rowconfigure(1, weight=1)  # 프롬프트 섹션
-        self.grid_rowconfigure(2, weight=1)  # 용어집 섹션
+        self.grid_rowconfigure(1, weight=3)  # 프롬프트 섹션
+        self.grid_rowconfigure(2, weight=1)  # 프리필 섹션
+        self.grid_rowconfigure(3, weight=2)  # 용어집 섹션
 
         # --- 전체 제목 ---
         self.pg_title_label = ctk.CTkLabel(self, font=ctk.CTkFont(size=14, weight="bold"))
@@ -47,9 +48,22 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         self.reset_prompt_btn.pack(side="left", padx=5)
         self.reset_prompt_btn_tooltip = Tooltip(self.reset_prompt_btn, "")
 
+        # --- 프리필 프레임 ---
+        prefill_subframe = ctk.CTkFrame(self, fg_color="transparent")
+        prefill_subframe.grid(row=2, column=0, padx=10, pady=5, sticky="nsew")
+        prefill_subframe.grid_columnconfigure(0, weight=1)
+        prefill_subframe.grid_rowconfigure(1, weight=1)
+
+        self.prefill_title_label = ctk.CTkLabel(prefill_subframe, font=ctk.CTkFont(size=13, weight="bold"))
+        self.prefill_title_label.grid(row=0, column=0, sticky="w", pady=(5, 8))
+
+        self.prefill_textbox = ctk.CTkTextbox(prefill_subframe, wrap="word", height=60)
+        self.prefill_textbox.grid(row=1, column=0, sticky="nsew")
+        self.prefill_textbox_tooltip = Tooltip(self.prefill_textbox, "")
+
         # --- 용어집 프레임 ---
         glossary_manage_subframe = ctk.CTkFrame(self, fg_color="transparent")
-        glossary_manage_subframe.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="nsew")
+        glossary_manage_subframe.grid(row=3, column=0, padx=10, pady=(5, 10), sticky="nsew")
         glossary_manage_subframe.grid_columnconfigure(0, weight=1)
         glossary_manage_subframe.grid_rowconfigure(1, weight=1) # ScrollableFrame이 확장되도록 설정
 
@@ -72,6 +86,16 @@ class PromptGlossaryPanel(ctk.CTkFrame):
     def set_prompt_text(self, text):
         self.prompt_textbox.delete("1.0", "end")
         self.prompt_textbox.insert("1.0", text)
+
+    def get_prefill_text(self):
+        """프리필 텍스트 반환"""
+        return self.prefill_textbox.get("1.0", "end-1c")
+
+    def set_prefill_text(self, text):
+        """프리필 텍스트 설정"""
+        self.prefill_textbox.delete("1.0", "end")
+        if text:
+            self.prefill_textbox.insert("1.0", text)
 
     def update_glossary_list_display(self, glossary_data_list):
         for widget in self.glossary_list_frame.winfo_children():
@@ -116,6 +140,8 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         self.save_prompt_btn_tooltip.update_text(texts.get("save_prompt_button_tooltip"))
         self.reset_prompt_btn.configure(text=texts.get("reset_prompt_button"))
         self.reset_prompt_btn_tooltip.update_text(texts.get("reset_prompt_button_tooltip"))
+        self.prefill_title_label.configure(text=texts.get("prefill_title", "Prefill (Response Prefix)"))
+        self.prefill_textbox_tooltip.update_text(texts.get("prefill_tooltip", "Text to prepend to the model's response. Used to guide the output format."))
         self.glossary_manage_title_label.configure(text=texts.get("glossary_management_frame_title"))
         self.add_glossary_btn.configure(text=texts.get("add_glossary_button"))
         self.add_glossary_btn_tooltip.update_text(texts.get("add_glossary_button_tooltip"))

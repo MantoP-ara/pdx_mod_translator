@@ -16,6 +16,7 @@ class SettingsManager:
         """
         loaded_prompt = None
         loaded_glossaries_paths = []
+        loaded_prefill = ""
         try:
             if os.path.exists(CONFIG_FILE):
                 with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
@@ -47,16 +48,19 @@ class SettingsManager:
 
                 loaded_glossaries_paths = config.get("glossaries", [])
 
+                loaded_prefill = config.get("prefill_text", "")
+
         except Exception as e:
             print(f"설정 로드 오류: {e}") # GUI log_message 대신 print 사용
-        return loaded_prompt, loaded_glossaries_paths
+        return loaded_prompt, loaded_glossaries_paths, loaded_prefill
 
-    def save_settings(self, app_vars, current_prompt, glossary_file_paths, current_appearance_mode):
+    def save_settings(self, app_vars, current_prompt, glossary_file_paths, current_appearance_mode, prefill_text=""):
         """
         app_vars: UI의 StringVar/IntVar 등을 담은 딕셔너리
         current_prompt: 현재 프롬프트 텍스트
         glossary_file_paths: 현재 용어집 파일 경로 리스트
         current_appearance_mode: 현재 테마 모드 (ctk.get_appearance_mode() 값)
+        prefill_text: 프리필 텍스트
         """
         config = {
             "ui_language": app_vars["ui_lang_var"].get(),
@@ -79,7 +83,8 @@ class SettingsManager:
             "max_retries": app_vars["max_retries_var"].get(),
             "selected_game": app_vars["selected_game_var"].get(),
             "custom_prompt": current_prompt,
-            "glossaries": glossary_file_paths
+            "glossaries": glossary_file_paths,
+            "prefill_text": prefill_text
         }
         try:
             with open(CONFIG_FILE, 'w', encoding='utf-8') as f:

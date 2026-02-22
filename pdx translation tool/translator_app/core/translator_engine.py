@@ -98,8 +98,10 @@ class TranslatorEngine:
         self.skip_already_translated = False
         self.selected_game = None
         self.max_retries = 3
+        self.prefill_text = ""
 
         self.translated_files_info_for_review = []
+        self.failed_files = []  # 실패한 파일 추적
         
         # UI 콜백 및 통계 콜백
         self.preview_callback = None
@@ -969,9 +971,18 @@ class TranslatorEngine:
                 if self.stop_event.is_set():
                     return text_batch
 
+                # 프리필 텍스트가 있으면 멀티턴 형태로 API 호출
+                if hasattr(self, 'prefill_text') and self.prefill_text and self.prefill_text.strip():
+                    api_contents = [
+                        {'role': 'user', 'parts': [{'text': final_prompt}]},
+                        {'role': 'model', 'parts': [{'text': self.prefill_text.strip()}]}
+                    ]
+                else:
+                    api_contents = final_prompt
+
                 # API 호출
                 response = self.model.generate_content(
-                    final_prompt,
+                    api_contents,
                     generation_config=genai.types.GenerationConfig(
                         temperature=temperature,
                         max_output_tokens=self.max_tokens,
@@ -988,6 +999,9 @@ class TranslatorEngine:
                     candidate = response.candidates[0]
                     if candidate.content and candidate.content.parts:
                         translated_text = "".join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
+                    # 프리필 텍스트가 있으면 응답에 프리필을 접두사로 추가
+                    if hasattr(self, 'prefill_text') and self.prefill_text and self.prefill_text.strip():
+                        translated_text = self.prefill_text.strip() + translated_text
                     if hasattr(candidate, 'finish_reason'):
                         finish_reason_val = candidate.finish_reason
                 elif hasattr(response, 'text') and response.text: 
@@ -1667,6 +1681,12 @@ class TranslatorEngine:
                     return not self.stop_event.is_set()
                 except Exception as e:
                     self.log_callback("log_file_process_error", os.path.basename(input_f), str(e))
+                    with self._file_processing_lock:
+                        self.failed_files.append({
+                            "input": input_f,
+                            "output": os.path.join(output_dir, os.path.relpath(os.path.dirname(input_f), input_dir), os.path.basename(input_f)),
+                            "error": str(e)
+                        })
                     return False
 
             # 실제 동시 처리 워커 수 제한 (API 제한 고려하여 증가)
@@ -1697,6 +1717,12 @@ class TranslatorEngine:
                                                         progress_value, "translation")
                     except Exception as e:
                         self.log_callback("log_file_thread_error", os.path.basename(file_path), str(e))
+                        with self._file_processing_lock:
+                            self.failed_files.append({
+                                "input": file_path,
+                                "output": "",
+                                "error": str(e)
+                            })
             
             final_log_msg_key = "log_all_translation_done" if not self.stop_event.is_set() else "log_translation_stopped_by_user"
             self.log_callback(final_log_msg_key)
@@ -1716,6 +1742,71 @@ class TranslatorEngine:
                 self.main_status_callback("status_completed_some", completed_count, total_files_to_process, task_type=task_type)
             self._set_current_file_for_log("")
 
+            self._set_current_file_for_log("")
+
+    def _retry_failed_files_worker(self, output_dir):
+        """실패한 파일들만 재번역하는 워커 스레드"""
+        failed_files_copy = list(self.failed_files)
+        self.failed_files.clear()
+        completed_count = 0
+        total_files = len(failed_files_copy)
+
+        if not self._initialize_model():
+            self.main_status_callback("status_waiting", task_type="translation")
+            return
+
+        self.log_callback("log_retry_failed_start", total_files)
+
+        try:
+            for file_info in failed_files_copy:
+                if self.stop_event.is_set():
+                    break
+
+                input_f = file_info["input"]
+                output_f = file_info.get("output", "")
+
+                if not output_f or not os.path.basename(output_f):
+                    output_f = os.path.join(output_dir, os.path.basename(input_f))
+
+                try:
+                    self._process_single_file_core(input_f, output_f)
+                    completed_count += 1
+                    progress_value = completed_count / total_files
+                    self.main_progress_callback(completed_count, total_files, progress_value, "translation")
+                except Exception as e:
+                    self.log_callback("log_file_process_error", os.path.basename(input_f), str(e))
+                    self.failed_files.append({
+                        "input": input_f,
+                        "output": output_f,
+                        "error": str(e)
+                    })
+
+            if self.stop_event.is_set():
+                self.log_callback("log_translation_stopped_by_user")
+            else:
+                self.log_callback("log_retry_failed_complete", completed_count, total_files)
+
+        except Exception as e:
+            if not self.stop_event.is_set():
+                self.log_callback("log_translation_process_error", str(e))
+        finally:
+            task_type = "translation"
+            if self.stop_event.is_set():
+                self.main_status_callback("status_stopped", completed_count, total_files, task_type=task_type)
+            elif completed_count == total_files and total_files > 0:
+                self.main_status_callback("status_completed_all", completed_count, total_files, task_type=task_type)
+            else:
+                self.main_status_callback("status_completed_some", completed_count, total_files, task_type=task_type)
+            self._set_current_file_for_log("")
+
+    def get_failed_files(self):
+        """실패한 파일 목록 반환"""
+        return list(self.failed_files)
+
+    def has_failed_files(self):
+        """실패한 파일이 있는지 확인"""
+        return len(self.failed_files) > 0
+
     def start_translation_process(self, api_key, selected_model_name,
                                 input_folder, output_folder,
                                 source_lang_api, target_lang_api,
@@ -1728,7 +1819,9 @@ class TranslatorEngine:
                                 max_retries=3,
                                 preview_callback=None,
                                 stats_callback=None,
-                                enable_backup=False):
+                                enable_backup=False,
+                                prefill_text="",
+                                retry_failed_only=False):
         if self.translation_thread and self.translation_thread.is_alive():
             self.log_callback("warn_already_translating")
             return False
@@ -1755,6 +1848,7 @@ class TranslatorEngine:
         self.skip_already_translated = skip_already_translated
         self.max_retries = max_retries
         self.enable_backup = enable_backup
+        self.prefill_text = prefill_text if prefill_text else ""
         
         # 콜백 설정 (안전하게)
         self.preview_callback = preview_callback if callable(preview_callback) else None
@@ -1764,6 +1858,23 @@ class TranslatorEngine:
         self._regex_error_cache.clear()
         self._source_remnant_cache.clear()
         self.clear_statistics()
+
+        # 실패한 파일만 재시도 모드
+        if retry_failed_only:
+            if not self.failed_files:
+                self.log_callback("log_no_failed_files")
+                return False
+            self.main_status_callback("status_preparing", task_type="translation")
+            self.translation_thread = threading.Thread(
+                target=self._retry_failed_files_worker,
+                args=(output_folder,),
+                daemon=True
+            )
+            self.translation_thread.start()
+            return True
+
+        # 새 번역 시작 시 실패 목록 초기화
+        self.failed_files.clear()
 
         self.main_status_callback("status_preparing", task_type="translation")
         self.translation_thread = threading.Thread(
@@ -1892,5 +2003,108 @@ class TranslatorEngine:
         # 병합된 라인 (줄바꿈 오류)
         if '\\n' not in value and len(value) > 200:
             error_types.append('merged_lines')
+        
+        return error_types or ['unknown']
+
+    def scan_untranslated_in_file(self, original_file, translated_file, source_lang, target_lang):
+        """번역된 파일에서 미번역된 항목을 스캔"""
+        untranslated_items = []
+        
+        try:
+            with codecs.open(original_file, 'r', encoding='utf-8-sig') as f:
+                original_lines = f.readlines()
+            with codecs.open(translated_file, 'r', encoding='utf-8-sig') as f:
+                translated_lines = f.readlines()
+            
+            # 원본 키-값 매핑 생성
+            original_map = {}
+            for line in original_lines:
+                key = self._extract_yml_key(line)
+                value = self._extract_yml_value(line)
+                if key and value:
+                    original_map[key] = value
+            
+            # 번역 파일에서 미번역 항목 찾기
+            for line_num, line in enumerate(translated_lines):
+                key = self._extract_yml_key(line)
+                translated_value = self._extract_yml_value(line)
+                
+                if not key or not translated_value:
+                    continue
+                
+                original_value = original_map.get(key)
+                if not original_value:
+                    continue
+                
+                # 미번역 판단: 원본과 동일하거나 원본 언어가 남아있는 경우
+                reason = None
+                if original_value.strip() == translated_value.strip():
+                    reason = "identical"
+                elif not self._is_already_translated(translated_value, target_lang):
+                    reason = "source_remnant"
+                
+                if reason:
+                    untranslated_items.append({
+                        "key": key,
+                        "line_num": line_num,
+                        "original": original_value,
+                        "current": translated_value,
+                        "reason": reason,
+                        "full_line": line
+                    })
+        
+        except Exception as e:
+            if self.log_callback:
+                self.log_callback("log_scan_error", str(e))
+        
+        return untranslated_items
+
+    def retranslate_items(self, translated_file, items_to_retranslate):
+        """선택된 미번역 항목들을 재번역"""
+        if not items_to_retranslate:
+            return 0
+        
+        if not self._initialize_model():
+            return 0
+        
+        try:
+            with codecs.open(translated_file, 'r', encoding='utf-8-sig') as f:
+                all_lines = f.readlines()
+            
+            # 배치 단위로 재번역
+            lines_to_translate = [item["full_line"] for item in items_to_retranslate]
+            
+            retranslated_count = 0
+            for i in range(0, len(lines_to_translate), self.batch_size):
+                if self.stop_event.is_set():
+                    break
+                
+                batch = lines_to_translate[i:i + self.batch_size]
+                batch_items = items_to_retranslate[i:i + self.batch_size]
+                
+                translated_batch = self._translate_batch_core(batch, retry=True)
+                
+                # 결과를 파일에 적용
+                for j, item in enumerate(batch_items):
+                    if j < len(translated_batch):
+                        line_num = item["line_num"]
+                        if line_num < len(all_lines):
+                            all_lines[line_num] = translated_batch[j]
+                            retranslated_count += 1
+                
+                if self.delay_between_batches > 0 and not self.stop_event.is_set():
+                    time.sleep(self.delay_between_batches)
+            
+            # 파일 저장
+            if retranslated_count > 0 and not self.stop_event.is_set():
+                with codecs.open(translated_file, 'w', encoding='utf-8-sig') as f:
+                    f.writelines(all_lines)
+            
+            return retranslated_count
+        
+        except Exception as e:
+            if self.log_callback:
+                self.log_callback("log_retranslation_error", str(e))
+            return 0
         
         return error_types or ['unknown']

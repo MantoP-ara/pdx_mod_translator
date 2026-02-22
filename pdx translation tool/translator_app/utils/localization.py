@@ -153,6 +153,13 @@ LANGUAGES = {
         "tools_menu": "도구",
         "open_dashboard": "번역 통계 대시보드",
         "open_consistency_checker": "용어 일관성 검사기",
+        "open_retranslation_window_button": "미번역 재번역 도구",
+        "retry_failed_button": "실패 재시도 ({0})",
+        "no_failed_files": "재시도할 실패한 파일이 없습니다.",
+
+        # 2.10. 프리필 (Prefill)
+        "prefill_title": "프리필 (응답 접두사)",
+        "prefill_tooltip": "모델 응답의 시작 부분에 추가할 텍스트입니다.\n출력 형식을 제어하는 데 사용됩니다.",
 
         # ======================================================================
         # 3. 실행 로그 (Execution Logs)
@@ -199,6 +206,11 @@ LANGUAGES = {
         "log_combined_glossary_empty": "병합된 용어집이 비어있습니다.",
         "log_combined_glossary_info": "병합된 용어집에서 {0}개 유효 항목을 사용합니다.",
         "log_retrying_missing_lines": "누락된 {0}개 라인 재번역 시도 중... (시도 {1}/3)",
+        "log_retry_failed_start": "실패한 {0}개 파일 재번역을 시작합니다...",
+        "log_retry_failed_complete": "실패 파일 재번역 완료 ({0}/{1})",
+        "log_no_failed_files": "재시도할 실패한 파일이 없습니다.",
+        "log_scan_error": "스캔 오류: {0}",
+        "log_retranslation_error": "재번역 오류: {0}",
 
         # 3.2. 오류/경고 로그 (Error/Warning Logs)
         "error_api_key_needed": "Gemini API 키를 입력해야 합니다.",
@@ -387,7 +399,34 @@ LANGUAGES = {
         "validation_error_regex": "형식 오류",
         "no_errors": "오류 없음",
 
-        # 4.5. 실시간 미리보기 (Live Preview)
+        # 4.5. 재번역 도구 (Retranslation Tool)
+        "retranslation_window_title": "미번역 재번역 도구",
+        "retranslation_window_description": "번역된 파일에서 미번역된 텍스트를 찾아 재번역합니다",
+        "retranslation_file_list": "번역된 파일",
+        "retranslation_scan_button": "미번역 텍스트 스캔",
+        "retranslation_untranslated_items": "미번역 항목",
+        "retranslation_select_all": "전체 선택",
+        "retranslation_deselect_all": "전체 해제",
+        "retranslation_retranslate_button": "선택 항목 재번역",
+        "retranslation_status_ready": "스캔 준비 완료",
+        "retranslation_no_output_folder": "출력 폴더가 설정되지 않았습니다",
+        "retranslation_scanning": "파일 스캔 중...",
+        "retranslation_found_files": "{0}개의 번역된 파일을 찾았습니다",
+        "retranslation_scan_complete": "스캔 완료",
+        "retranslation_found_untranslated": "{0}개의 미번역 항목을 찾았습니다",
+        "retranslation_no_untranslated": "미번역 항목을 찾지 못했습니다",
+        "retranslation_original": "원본",
+        "retranslation_current": "현재",
+        "retranslation_reason_identical": "원본과 동일",
+        "retranslation_reason_source_remnant": "원본 언어 잔존",
+        "retranslation_items_selected": "개 항목 선택됨",
+        "retranslation_api_error": "API 키와 모델을 설정해야 합니다",
+        "retranslation_in_progress": "재번역 중...",
+        "retranslation_complete": "재번역 완료",
+        "retranslation_rescan_prompt": "재번역이 완료되었습니다. 다시 스캔하시겠습니까?",
+        "retranslation_stopping": "중지 중...",
+
+        # 4.6. 실시간 미리보기 (Live Preview)
         "live_preview_title": "실시간 번역 미리보기",
         "auto_scroll": "자동 스크롤",
         "show_quality": "품질 표시",
@@ -538,6 +577,12 @@ LANGUAGES = {
         "open_consistency_checker": "Term Consistency Checker",
         "open_comparison_window_button": "Open File Comparison/Review Window",
         "open_retranslation_window_button": "Open Retranslation Tool",
+        "retry_failed_button": "Retry Failed ({0})",
+        "no_failed_files": "No failed files to retry.",
+
+        # 2.10. Prefill
+        "prefill_title": "Prefill (Response Prefix)",
+        "prefill_tooltip": "Text to prepend to the model's response.\nUsed to guide the output format.",
 
         # ======================================================================
         # 3. Execution Logs
@@ -584,6 +629,11 @@ LANGUAGES = {
         "log_combined_glossary_empty": "Combined glossary is empty.",
         "log_combined_glossary_info": "Using {0} valid items from the combined glossary.",
         "log_retrying_missing_lines": "Retrying {0} missing lines... (attempt {1}/3)",
+        "log_retry_failed_start": "Starting retranslation of {0} failed files...",
+        "log_retry_failed_complete": "Failed file retranslation complete ({0}/{1})",
+        "log_no_failed_files": "No failed files to retry.",
+        "log_scan_error": "Scan error: {0}",
+        "log_retranslation_error": "Retranslation error: {0}",
 
         # 3.2. Error/Warning Logs
         "error_api_key_needed": "Gemini API key is required.",
@@ -825,6 +875,7 @@ LANGUAGES = {
         "retranslation_current": "Current",
         "retranslation_reason_identical": "Identical to original",
         "retranslation_reason_english": "Contains English text",
+        "retranslation_reason_source_remnant": "Source language remnant",
         "retranslation_items_selected": "items selected",
         "retranslation_api_error": "API key and model must be configured",
         "retranslation_in_progress": "Retranslating...",
@@ -983,6 +1034,12 @@ LANGUAGES = {
         "open_consistency_checker": "术语一致性检查器",
         "open_comparison_window_button": "打开文件比较/校对窗口",
         "open_retranslation_window_button": "打开重新翻译工具",
+        "retry_failed_button": "重试失败 ({0})",
+        "no_failed_files": "没有需要重试的失败文件。",
+
+        # 2.10. 预填充 (Prefill)
+        "prefill_title": "预填充（响应前缀）",
+        "prefill_tooltip": "添加到模型响应开头的文本。\n用于控制输出格式。",
 
         # ======================================================================
         # 3. 运行日志 (Execution Logs)
@@ -1029,6 +1086,11 @@ LANGUAGES = {
         "log_combined_glossary_empty": "合并后的术语表为空。",
         "log_combined_glossary_info": "正在使用合并后术语表中的 {0} 个有效条目。",
         "log_retrying_missing_lines": "正在重试 {0} 个缺失行...（第 {1}/3 次尝试）",
+        "log_retry_failed_start": "开始重新翻译 {0} 个失败文件...",
+        "log_retry_failed_complete": "失败文件重新翻译完成（{0}/{1}）",
+        "log_no_failed_files": "没有需要重试的失败文件。",
+        "log_scan_error": "扫描错误：{0}",
+        "log_retranslation_error": "重新翻译错误：{0}",
 
         # 3.2. 错误/警告日志 (Error/Warning Logs)
         "error_api_key_needed": "需要输入 Gemini API 密钥。",
@@ -1270,6 +1332,7 @@ LANGUAGES = {
         "retranslation_current": "当前",
         "retranslation_reason_identical": "与原文相同",
         "retranslation_reason_english": "包含英文文本",
+        "retranslation_reason_source_remnant": "源语言残留",
         "retranslation_items_selected": "个项目已选中",
         "retranslation_api_error": "必须配置API密钥和模型",
         "retranslation_in_progress": "正在重新翻译...",
