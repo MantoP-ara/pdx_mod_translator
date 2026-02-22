@@ -1742,8 +1742,6 @@ class TranslatorEngine:
                 self.main_status_callback("status_completed_some", completed_count, total_files_to_process, task_type=task_type)
             self._set_current_file_for_log("")
 
-            self._set_current_file_for_log("")
-
     def _retry_failed_files_worker(self, output_dir):
         """실패한 파일들만 재번역하는 워커 스레드"""
         failed_files_copy = list(self.failed_files)
@@ -2106,5 +2104,3 @@ class TranslatorEngine:
             if self.log_callback:
                 self.log_callback("log_retranslation_error", str(e))
             return 0
-        
-        return error_types or ['unknown']
