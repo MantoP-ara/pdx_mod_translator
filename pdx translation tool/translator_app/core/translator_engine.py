@@ -101,6 +101,7 @@ class TranslatorEngine:
         self.prefill_text = ""
         self.system_instruction = ""
         self.model_role_text = ""
+        self.user_turn2_text = ""
 
         self.translated_files_info_for_review = []
         self.failed_files = []  # 실패한 파일 추적
@@ -980,7 +981,15 @@ class TranslatorEngine:
 
                 # 모델 역할 텍스트가 있으면 멀티턴 형태로 API 호출
                 model_role = getattr(self, 'model_role_text', '') or getattr(self, 'prefill_text', '') or ''
-                if model_role.strip():
+                user_turn2 = getattr(self, 'user_turn2_text', '') or ''
+                if model_role.strip() and user_turn2.strip():
+                    # System → User → Model → User 멀티턴 프리필
+                    api_contents = [
+                        {'role': 'user', 'parts': [{'text': final_prompt}]},
+                        {'role': 'model', 'parts': [{'text': model_role.strip()}]},
+                        {'role': 'user', 'parts': [{'text': user_turn2.strip()}]}
+                    ]
+                elif model_role.strip():
                     api_contents = [
                         {'role': 'user', 'parts': [{'text': final_prompt}]},
                         {'role': 'model', 'parts': [{'text': model_role.strip()}]}
@@ -1007,8 +1016,8 @@ class TranslatorEngine:
                     candidate = response.candidates[0]
                     if candidate.content and candidate.content.parts:
                         translated_text = "".join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
-                    # 모델 역할 텍스트가 있으면 응답에 접두사로 추가
-                    if model_role.strip():
+                    # 모델 역할 텍스트가 있고 유저 턴 2가 없으면 응답에 접두사로 추가
+                    if model_role.strip() and not user_turn2.strip():
                         translated_text = model_role.strip() + translated_text
                     if hasattr(candidate, 'finish_reason'):
                         finish_reason_val = candidate.finish_reason
@@ -1829,7 +1838,8 @@ class TranslatorEngine:
                                 prefill_text="",
                                 retry_failed_only=False,
                                 system_instruction="",
-                                model_role_text=""):
+                                model_role_text="",
+                                user_turn2_text=""):
         if self.translation_thread and self.translation_thread.is_alive():
             self.log_callback("warn_already_translating")
             return False
@@ -1859,6 +1869,7 @@ class TranslatorEngine:
         self.prefill_text = prefill_text if prefill_text else ""
         self.system_instruction = system_instruction if system_instruction else ""
         self.model_role_text = model_role_text if model_role_text else ""
+        self.user_turn2_text = user_turn2_text if user_turn2_text else ""
         
         # 콜백 설정 (안전하게)
         self.preview_callback = preview_callback if callable(preview_callback) else None
@@ -2127,7 +2138,8 @@ class TranslatorEngine:
                                           selected_game=None, max_retries=3,
                                           preview_callback=None, stats_callback=None,
                                           enable_backup=False, prefill_text="",
-                                          system_instruction="", model_role_text=""):
+                                          system_instruction="", model_role_text="",
+                                          user_turn2_text=""):
         """버전 업데이트된 모드의 변경/추가된 라인만 번역하는 프로세스"""
         if self.translation_thread and self.translation_thread.is_alive():
             self.log_callback("warn_already_translating")
@@ -2154,6 +2166,7 @@ class TranslatorEngine:
         self.prefill_text = prefill_text if prefill_text else ""
         self.system_instruction = system_instruction if system_instruction else ""
         self.model_role_text = model_role_text if model_role_text else ""
+        self.user_turn2_text = user_turn2_text if user_turn2_text else ""
 
         self.preview_callback = preview_callback if callable(preview_callback) else None
         self.stats_callback = stats_callback if callable(stats_callback) else None

@@ -164,6 +164,8 @@ LANGUAGES = {
         "model_role_tooltip": "모델 응답의 시작 부분에 추가할 텍스트입니다.\n출력 형식을 제어하는 데 사용됩니다.",
         "prefill_title": "모델 역할 (응답 접두사)",
         "prefill_tooltip": "모델 응답의 시작 부분에 추가할 텍스트입니다.\n출력 형식을 제어하는 데 사용됩니다.",
+        "user_turn2_title": "유저 역할 2 (추가 유저 턴)",
+        "user_turn2_tooltip": "모델 역할 이후의 추가 유저 메시지입니다.\n멀티턴 프리필 시 System→User→Model→User 형태로 전송됩니다.",
 
         # 2.11. 버전 업데이트 번역 (Version Update Translation)
         "old_translation_folder_label": "기존 번역 폴더:",
@@ -603,6 +605,8 @@ LANGUAGES = {
         "model_role_tooltip": "Text to prepend to the model's response.\nUsed to guide the output format.",
         "prefill_title": "Model Role (Response Prefix)",
         "prefill_tooltip": "Text to prepend to the model's response.\nUsed to guide the output format.",
+        "user_turn2_title": "User Role 2 (Additional User Turn)",
+        "user_turn2_tooltip": "Additional user message after the model role.\nSent as System→User→Model→User multi-turn prefill.",
 
         # 2.11. Version Update Translation
         "old_translation_folder_label": "Old Translation:",
@@ -1076,6 +1080,8 @@ LANGUAGES = {
         "model_role_tooltip": "添加到模型响应开头的文本。\n用于控制输出格式。",
         "prefill_title": "模型角色（响应前缀）",
         "prefill_tooltip": "添加到模型响应开头的文本。\n用于控制输出格式。",
+        "user_turn2_title": "用户角色2（附加用户轮次）",
+        "user_turn2_tooltip": "模型角色之后的附加用户消息。\n以System→User→Model→User多轮预填充形式发送。",
 
         # 2.11. 版本更新翻译 (Version Update Translation)
         "old_translation_folder_label": "旧翻译文件夹：",
