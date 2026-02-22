@@ -14,7 +14,8 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         self.grid_rowconfigure(1, weight=1)  # 시스템 역할 섹션
         self.grid_rowconfigure(2, weight=3)  # 유저 역할 (프롬프트) 섹션
         self.grid_rowconfigure(3, weight=1)  # 모델 역할 섹션
-        self.grid_rowconfigure(4, weight=2)  # 용어집 섹션
+        self.grid_rowconfigure(4, weight=1)  # 유저 역할 2 섹션
+        self.grid_rowconfigure(5, weight=2)  # 용어집 섹션
 
         # --- 전체 제목 ---
         self.pg_title_label = ctk.CTkLabel(self, font=ctk.CTkFont(size=14, weight="bold"))
@@ -75,9 +76,22 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         self.model_role_textbox.grid(row=1, column=0, sticky="nsew")
         self.model_role_textbox_tooltip = Tooltip(self.model_role_textbox, "")
 
+        # --- 유저 역할 2 프레임 ---
+        user_turn2_subframe = ctk.CTkFrame(self, fg_color="transparent")
+        user_turn2_subframe.grid(row=4, column=0, padx=10, pady=5, sticky="nsew")
+        user_turn2_subframe.grid_columnconfigure(0, weight=1)
+        user_turn2_subframe.grid_rowconfigure(1, weight=1)
+
+        self.user_turn2_title_label = ctk.CTkLabel(user_turn2_subframe, font=ctk.CTkFont(size=13, weight="bold"))
+        self.user_turn2_title_label.grid(row=0, column=0, sticky="w", pady=(5, 8))
+
+        self.user_turn2_textbox = ctk.CTkTextbox(user_turn2_subframe, wrap="word", height=60)
+        self.user_turn2_textbox.grid(row=1, column=0, sticky="nsew")
+        self.user_turn2_textbox_tooltip = Tooltip(self.user_turn2_textbox, "")
+
         # --- 용어집 프레임 ---
         glossary_manage_subframe = ctk.CTkFrame(self, fg_color="transparent")
-        glossary_manage_subframe.grid(row=4, column=0, padx=10, pady=(5, 10), sticky="nsew")
+        glossary_manage_subframe.grid(row=5, column=0, padx=10, pady=(5, 10), sticky="nsew")
         glossary_manage_subframe.grid_columnconfigure(0, weight=1)
         glossary_manage_subframe.grid_rowconfigure(1, weight=1) # ScrollableFrame이 확장되도록 설정
 
@@ -129,6 +143,16 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         if text:
             self.model_role_textbox.insert("1.0", text)
 
+    def get_user_turn2_text(self):
+        """유저 역할 2 텍스트 반환"""
+        return self.user_turn2_textbox.get("1.0", "end-1c")
+
+    def set_user_turn2_text(self, text):
+        """유저 역할 2 텍스트 설정"""
+        self.user_turn2_textbox.delete("1.0", "end")
+        if text:
+            self.user_turn2_textbox.insert("1.0", text)
+
     def update_glossary_list_display(self, glossary_data_list):
         for widget in self.glossary_list_frame.winfo_children():
             widget.destroy()
@@ -176,6 +200,8 @@ class PromptGlossaryPanel(ctk.CTkFrame):
         self.reset_prompt_btn_tooltip.update_text(texts.get("reset_prompt_button_tooltip"))
         self.model_role_title_label.configure(text=texts.get("model_role_title", "Model Role (Response Prefix)"))
         self.model_role_textbox_tooltip.update_text(texts.get("model_role_tooltip", "Text to prepend to the model's response."))
+        self.user_turn2_title_label.configure(text=texts.get("user_turn2_title", "User Role 2 (Additional User Turn)"))
+        self.user_turn2_textbox_tooltip.update_text(texts.get("user_turn2_tooltip", "Additional user message after the model role."))
         self.glossary_manage_title_label.configure(text=texts.get("glossary_management_frame_title"))
         self.add_glossary_btn.configure(text=texts.get("add_glossary_button"))
         self.add_glossary_btn_tooltip.update_text(texts.get("add_glossary_button_tooltip"))

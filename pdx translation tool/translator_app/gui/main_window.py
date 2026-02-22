@@ -83,6 +83,7 @@ class TranslationGUI(ctk.CTk):
         self.loaded_prefill_from_config = ""
         self.loaded_system_instruction_from_config = ""
         self.loaded_model_role_text_from_config = ""
+        self.loaded_user_turn2_text_from_config = ""
         self.old_translation_folder_var = tk.StringVar()
 
         self.translation_stats = []  # 대시보드가 닫혀있어도 통계 수집
@@ -161,6 +162,9 @@ Text to translate:
 
         if self.loaded_model_role_text_from_config:
             self.after(100, lambda: self.prompt_glossary_panel.set_model_role_text(self.loaded_model_role_text_from_config))
+
+        if self.loaded_user_turn2_text_from_config:
+            self.after(100, lambda: self.prompt_glossary_panel.set_user_turn2_text(self.loaded_user_turn2_text_from_config))
 
         self._update_glossary_list_ui_data()
         self._update_status_ui("status_waiting", task_type="system")
@@ -266,11 +270,12 @@ Text to translate:
             "enable_live_preview_var": self.enable_live_preview,
             "old_translation_folder_var": self.old_translation_folder_var,
         }
-        loaded_prompt, loaded_glossary_paths, loaded_prefill, loaded_system_instruction, loaded_model_role_text = self.settings_manager.load_settings(app_vars_for_settings)
+        loaded_prompt, loaded_glossary_paths, loaded_prefill, loaded_system_instruction, loaded_model_role_text, loaded_user_turn2_text = self.settings_manager.load_settings(app_vars_for_settings)
         self.loaded_prompt_from_config = loaded_prompt
         self.loaded_prefill_from_config = loaded_prefill
         self.loaded_system_instruction_from_config = loaded_system_instruction
         self.loaded_model_role_text_from_config = loaded_model_role_text
+        self.loaded_user_turn2_text_from_config = loaded_user_turn2_text
         self.glossary_files = []
         for g_path in loaded_glossary_paths:
             if os.path.exists(g_path):
@@ -304,13 +309,15 @@ Text to translate:
         current_prefill_text = self.prompt_glossary_panel.get_prefill_text() if hasattr(self, 'prompt_glossary_panel') else ""
         current_system_instruction = self.prompt_glossary_panel.get_system_instruction_text() if hasattr(self, 'prompt_glossary_panel') else ""
         current_model_role_text = self.prompt_glossary_panel.get_model_role_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        current_user_turn2_text = self.prompt_glossary_panel.get_user_turn2_text() if hasattr(self, 'prompt_glossary_panel') else ""
         current_glossary_paths = [g["path"] for g in self.glossary_files]
         current_appearance_theme = ctk.get_appearance_mode()
         self.settings_manager.save_settings(
             app_vars_for_settings, current_prompt_text, current_glossary_paths, current_appearance_theme,
             prefill_text=current_prefill_text,
             system_instruction=current_system_instruction,
-            model_role_text=current_model_role_text
+            model_role_text=current_model_role_text,
+            user_turn2_text=current_user_turn2_text
         )
         self.log_message("settings_saved_log")
 
@@ -692,6 +699,7 @@ Text to translate:
         prefill_text_to_use = self.prompt_glossary_panel.get_prefill_text() if hasattr(self, 'prompt_glossary_panel') else ""
         system_instruction_to_use = self.prompt_glossary_panel.get_system_instruction_text() if hasattr(self, 'prompt_glossary_panel') else ""
         model_role_text_to_use = self.prompt_glossary_panel.get_model_role_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        user_turn2_text_to_use = self.prompt_glossary_panel.get_user_turn2_text() if hasattr(self, 'prompt_glossary_panel') else ""
 
         # 항상 stats_callback을 설정 (main_window의 메서드로)
         success = self.translator_engine.start_translation_process(
@@ -719,7 +727,8 @@ Text to translate:
             enable_backup=self.enable_backup_var.get(),
             prefill_text=prefill_text_to_use,
             system_instruction=system_instruction_to_use,
-            model_role_text=model_role_text_to_use
+            model_role_text=model_role_text_to_use,
+            user_turn2_text=user_turn2_text_to_use
         )
 
     def stop_translation(self):
@@ -753,6 +762,7 @@ Text to translate:
         prefill_text_to_use = self.prompt_glossary_panel.get_prefill_text() if hasattr(self, 'prompt_glossary_panel') else ""
         system_instruction_to_use = self.prompt_glossary_panel.get_system_instruction_text() if hasattr(self, 'prompt_glossary_panel') else ""
         model_role_text_to_use = self.prompt_glossary_panel.get_model_role_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        user_turn2_text_to_use = self.prompt_glossary_panel.get_user_turn2_text() if hasattr(self, 'prompt_glossary_panel') else ""
 
         failed_count = len(self.translator_engine.get_failed_files())
         self.log_message("log_retry_failed_start", failed_count)
@@ -783,7 +793,8 @@ Text to translate:
             prefill_text=prefill_text_to_use,
             retry_failed_only=True,
             system_instruction=system_instruction_to_use,
-            model_role_text=model_role_text_to_use
+            model_role_text=model_role_text_to_use,
+            user_turn2_text=user_turn2_text_to_use
         )
 
     def validate_inputs(self):
@@ -1006,6 +1017,7 @@ Text to translate:
         prefill_text_to_use = self.prompt_glossary_panel.get_prefill_text() if hasattr(self, 'prompt_glossary_panel') else ""
         system_instruction_to_use = self.prompt_glossary_panel.get_system_instruction_text() if hasattr(self, 'prompt_glossary_panel') else ""
         model_role_text_to_use = self.prompt_glossary_panel.get_model_role_text() if hasattr(self, 'prompt_glossary_panel') else ""
+        user_turn2_text_to_use = self.prompt_glossary_panel.get_user_turn2_text() if hasattr(self, 'prompt_glossary_panel') else ""
 
         self.translator_engine.start_version_update_translation(
             api_key=self.api_key_var.get().strip(),
@@ -1032,7 +1044,8 @@ Text to translate:
             enable_backup=self.enable_backup_var.get(),
             prefill_text=prefill_text_to_use,
             system_instruction=system_instruction_to_use,
-            model_role_text=model_role_text_to_use
+            model_role_text=model_role_text_to_use,
+            user_turn2_text=user_turn2_text_to_use
         )
 
     def toggle_live_preview(self, initial_load=False):
