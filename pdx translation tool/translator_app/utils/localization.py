@@ -157,9 +157,20 @@ LANGUAGES = {
         "retry_failed_button": "실패 재시도 ({0})",
         "no_failed_files": "재시도할 실패한 파일이 없습니다.",
 
-        # 2.10. 프리필 (Prefill)
-        "prefill_title": "프리필 (응답 접두사)",
+        # 2.10. 시스템/모델 역할 (System/Model Role)
+        "system_instruction_title": "시스템 역할 (System Instruction)",
+        "system_instruction_tooltip": "모델에 대한 시스템 수준 지시사항입니다.\n번역 규칙이나 스타일 가이드 등을 입력하세요.",
+        "model_role_title": "모델 역할 (응답 접두사)",
+        "model_role_tooltip": "모델 응답의 시작 부분에 추가할 텍스트입니다.\n출력 형식을 제어하는 데 사용됩니다.",
+        "prefill_title": "모델 역할 (응답 접두사)",
         "prefill_tooltip": "모델 응답의 시작 부분에 추가할 텍스트입니다.\n출력 형식을 제어하는 데 사용됩니다.",
+
+        # 2.11. 버전 업데이트 번역 (Version Update Translation)
+        "old_translation_folder_label": "기존 번역 폴더:",
+        "old_translation_folder_tooltip": "이전 버전의 번역 파일들이 있는 폴더를 선택하세요.\n버전 업데이트 번역 시 기존 번역을 재활용합니다.",
+        "old_translation_browse_tooltip": "기존 번역 폴더를 선택하는 탐색기를 엽니다.",
+        "old_translation_folder_title": "기존 번역 폴더 선택",
+        "version_update_translate_button": "버전 업데이트 번역",
 
         # ======================================================================
         # 3. 실행 로그 (Execution Logs)
@@ -211,6 +222,11 @@ LANGUAGES = {
         "log_no_failed_files": "재시도할 실패한 파일이 없습니다.",
         "log_scan_error": "스캔 오류: {0}",
         "log_retranslation_error": "재번역 오류: {0}",
+        "log_version_update_start": "버전 업데이트 번역을 시작합니다...",
+        "log_version_update_new_file": "새 파일 발견 (기존 번역 없음): {0} → 전체 번역 진행",
+        "log_version_update_stats": "파일 '{0}': 기존 번역 유지 {1}개, 새 항목 {2}개, 미번역 항목 {3}개",
+        "log_version_update_translating": "번역이 필요한 {0}개 라인을 번역합니다...",
+        "log_version_update_complete": "버전 업데이트 번역 완료 ({0}/{1} 파일)",
 
         # 3.2. 오류/경고 로그 (Error/Warning Logs)
         "error_api_key_needed": "Gemini API 키를 입력해야 합니다.",
@@ -580,9 +596,20 @@ LANGUAGES = {
         "retry_failed_button": "Retry Failed ({0})",
         "no_failed_files": "No failed files to retry.",
 
-        # 2.10. Prefill
-        "prefill_title": "Prefill (Response Prefix)",
+        # 2.10. System/Model Role
+        "system_instruction_title": "System Instruction",
+        "system_instruction_tooltip": "System-level instructions for the model.\nEnter translation rules or style guides.",
+        "model_role_title": "Model Role (Response Prefix)",
+        "model_role_tooltip": "Text to prepend to the model's response.\nUsed to guide the output format.",
+        "prefill_title": "Model Role (Response Prefix)",
         "prefill_tooltip": "Text to prepend to the model's response.\nUsed to guide the output format.",
+
+        # 2.11. Version Update Translation
+        "old_translation_folder_label": "Old Translation:",
+        "old_translation_folder_tooltip": "Select the folder containing previous translation files.\nExisting translations will be reused during version update translation.",
+        "old_translation_browse_tooltip": "Open file browser to select the old translation folder.",
+        "old_translation_folder_title": "Select Old Translation Folder",
+        "version_update_translate_button": "Version Update Translation",
 
         # ======================================================================
         # 3. Execution Logs
@@ -634,6 +661,11 @@ LANGUAGES = {
         "log_no_failed_files": "No failed files to retry.",
         "log_scan_error": "Scan error: {0}",
         "log_retranslation_error": "Retranslation error: {0}",
+        "log_version_update_start": "Starting version update translation...",
+        "log_version_update_new_file": "New file found (no existing translation): {0} → Full translation",
+        "log_version_update_stats": "File '{0}': Reused {1}, New {2}, Untranslated {3}",
+        "log_version_update_translating": "Translating {0} lines that need translation...",
+        "log_version_update_complete": "Version update translation complete ({0}/{1} files)",
 
         # 3.2. Error/Warning Logs
         "error_api_key_needed": "Gemini API key is required.",
@@ -1037,9 +1069,20 @@ LANGUAGES = {
         "retry_failed_button": "重试失败 ({0})",
         "no_failed_files": "没有需要重试的失败文件。",
 
-        # 2.10. 预填充 (Prefill)
-        "prefill_title": "预填充（响应前缀）",
+        # 2.10. 系统/模型角色 (System/Model Role)
+        "system_instruction_title": "系统指令",
+        "system_instruction_tooltip": "模型的系统级指令。\n输入翻译规则或风格指南。",
+        "model_role_title": "模型角色（响应前缀）",
+        "model_role_tooltip": "添加到模型响应开头的文本。\n用于控制输出格式。",
+        "prefill_title": "模型角色（响应前缀）",
         "prefill_tooltip": "添加到模型响应开头的文本。\n用于控制输出格式。",
+
+        # 2.11. 版本更新翻译 (Version Update Translation)
+        "old_translation_folder_label": "旧翻译文件夹：",
+        "old_translation_folder_tooltip": "选择包含旧版翻译文件的文件夹。\n版本更新翻译时将重用现有翻译。",
+        "old_translation_browse_tooltip": "打开文件浏览器选择旧翻译文件夹。",
+        "old_translation_folder_title": "选择旧翻译文件夹",
+        "version_update_translate_button": "版本更新翻译",
 
         # ======================================================================
         # 3. 运行日志 (Execution Logs)
@@ -1091,6 +1134,11 @@ LANGUAGES = {
         "log_no_failed_files": "没有需要重试的失败文件。",
         "log_scan_error": "扫描错误：{0}",
         "log_retranslation_error": "重新翻译错误：{0}",
+        "log_version_update_start": "开始版本更新翻译...",
+        "log_version_update_new_file": "发现新文件（无现有翻译）：{0} → 完整翻译",
+        "log_version_update_stats": "文件 '{0}'：复用 {1} 个，新增 {2} 个，未翻译 {3} 个",
+        "log_version_update_translating": "正在翻译 {0} 行需要翻译的内容...",
+        "log_version_update_complete": "版本更新翻译完成（{0}/{1} 个文件）",
 
         # 3.2. 错误/警告日志 (Error/Warning Logs)
         "error_api_key_needed": "需要输入 Gemini API 密钥。",

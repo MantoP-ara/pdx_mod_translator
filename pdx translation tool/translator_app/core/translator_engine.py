@@ -99,6 +99,8 @@ class TranslatorEngine:
         self.selected_game = None
         self.max_retries = 3
         self.prefill_text = ""
+        self.system_instruction = ""
+        self.model_role_text = ""
 
         self.translated_files_info_for_review = []
         self.failed_files = []  # 실패한 파일 추적
@@ -277,7 +279,12 @@ class TranslatorEngine:
             if not model_name.startswith('models/'):
                 model_name = f'models/{model_name}'
 
-            self.model = genai.GenerativeModel(model_name)
+            # 시스템 역할이 있으면 system_instruction으로 전달
+            system_instr = getattr(self, 'system_instruction', '') or ''
+            if system_instr.strip():
+                self.model = genai.GenerativeModel(model_name, system_instruction=system_instr.strip())
+            else:
+                self.model = genai.GenerativeModel(model_name)
             
             # API 연결 테스트
             test_response = self.model.generate_content(
@@ -971,11 +978,12 @@ class TranslatorEngine:
                 if self.stop_event.is_set():
                     return text_batch
 
-                # 프리필 텍스트가 있으면 멀티턴 형태로 API 호출
-                if hasattr(self, 'prefill_text') and self.prefill_text and self.prefill_text.strip():
+                # 모델 역할 텍스트가 있으면 멀티턴 형태로 API 호출
+                model_role = getattr(self, 'model_role_text', '') or getattr(self, 'prefill_text', '') or ''
+                if model_role.strip():
                     api_contents = [
                         {'role': 'user', 'parts': [{'text': final_prompt}]},
-                        {'role': 'model', 'parts': [{'text': self.prefill_text.strip()}]}
+                        {'role': 'model', 'parts': [{'text': model_role.strip()}]}
                     ]
                 else:
                     api_contents = final_prompt
@@ -999,9 +1007,9 @@ class TranslatorEngine:
                     candidate = response.candidates[0]
                     if candidate.content and candidate.content.parts:
                         translated_text = "".join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
-                    # 프리필 텍스트가 있으면 응답에 프리필을 접두사로 추가
-                    if hasattr(self, 'prefill_text') and self.prefill_text and self.prefill_text.strip():
-                        translated_text = self.prefill_text.strip() + translated_text
+                    # 모델 역할 텍스트가 있으면 응답에 접두사로 추가
+                    if model_role.strip():
+                        translated_text = model_role.strip() + translated_text
                     if hasattr(candidate, 'finish_reason'):
                         finish_reason_val = candidate.finish_reason
                 elif hasattr(response, 'text') and response.text: 
@@ -1819,7 +1827,9 @@ class TranslatorEngine:
                                 stats_callback=None,
                                 enable_backup=False,
                                 prefill_text="",
-                                retry_failed_only=False):
+                                retry_failed_only=False,
+                                system_instruction="",
+                                model_role_text=""):
         if self.translation_thread and self.translation_thread.is_alive():
             self.log_callback("warn_already_translating")
             return False
@@ -1847,6 +1857,8 @@ class TranslatorEngine:
         self.max_retries = max_retries
         self.enable_backup = enable_backup
         self.prefill_text = prefill_text if prefill_text else ""
+        self.system_instruction = system_instruction if system_instruction else ""
+        self.model_role_text = model_role_text if model_role_text else ""
         
         # 콜백 설정 (안전하게)
         self.preview_callback = preview_callback if callable(preview_callback) else None
@@ -2104,3 +2116,268 @@ class TranslatorEngine:
             if self.log_callback:
                 self.log_callback("log_retranslation_error", str(e))
             return 0
+
+    def start_version_update_translation(self, api_key, selected_model_name,
+                                          new_source_folder, old_translation_folder, output_folder,
+                                          source_lang_api, target_lang_api,
+                                          prompt_template, glossary_content,
+                                          batch_size_val, max_tokens_val, delay_val, temperature_val, max_workers_val,
+                                          keep_identifier_val, check_internal_lang_val,
+                                          split_large_files_threshold,
+                                          selected_game=None, max_retries=3,
+                                          preview_callback=None, stats_callback=None,
+                                          enable_backup=False, prefill_text="",
+                                          system_instruction="", model_role_text=""):
+        """버전 업데이트된 모드의 변경/추가된 라인만 번역하는 프로세스"""
+        if self.translation_thread and self.translation_thread.is_alive():
+            self.log_callback("warn_already_translating")
+            return False
+
+        self.stop_event.clear()
+        self.api_key = api_key
+        self.selected_model_name = selected_model_name
+        self.source_lang_for_api = source_lang_api
+        self.target_lang_for_api = target_lang_api
+        self.prompt_template_str = prompt_template
+        self.glossary_str_for_prompt = glossary_content
+        self.batch_size = batch_size_val
+        self.max_tokens = max_tokens_val
+        self.delay_between_batches = delay_val
+        self.temperature = temperature_val
+        self.max_workers = max_workers_val
+        self.keep_identifier = keep_identifier_val
+        self.check_internal_lang = check_internal_lang_val
+        self.split_large_files_threshold = split_large_files_threshold
+        self.selected_game = selected_game
+        self.max_retries = max_retries
+        self.enable_backup = enable_backup
+        self.prefill_text = prefill_text if prefill_text else ""
+        self.system_instruction = system_instruction if system_instruction else ""
+        self.model_role_text = model_role_text if model_role_text else ""
+
+        self.preview_callback = preview_callback if callable(preview_callback) else None
+        self.stats_callback = stats_callback if callable(stats_callback) else None
+
+        self._regex_error_cache.clear()
+        self._source_remnant_cache.clear()
+        self.clear_statistics()
+        self.failed_files.clear()
+
+        self.main_status_callback("status_preparing", task_type="translation")
+        self.translation_thread = threading.Thread(
+            target=self._version_update_worker,
+            args=(new_source_folder, old_translation_folder, output_folder),
+            daemon=True
+        )
+        self.translation_thread.start()
+        return True
+
+    def _version_update_worker(self, new_source_folder, old_translation_folder, output_folder):
+        """버전 업데이트 번역 워커 스레드"""
+        self.translated_files_info_for_review.clear()
+        completed_count = 0
+        total_files_to_process = 0
+
+        if not self._initialize_model():
+            self.main_status_callback("status_waiting", task_type="translation")
+            return
+
+        try:
+            source_lang_code = self.get_language_code(self.source_lang_for_api).lower()
+            target_lang_code = self.get_language_code(self.target_lang_for_api).lower()
+            file_identifier = f"l_{source_lang_code}"
+
+            self.log_callback("log_version_update_start")
+
+            # 새 원본 폴더에서 YML 파일 목록 수집
+            new_source_files = []
+            for root, _, files in os.walk(new_source_folder):
+                if self.stop_event.is_set():
+                    break
+                for f in files:
+                    if file_identifier in f.lower() and f.lower().endswith(('.yml', '.yaml')):
+                        new_source_files.append(os.path.join(root, f))
+
+            total_files_to_process = len(new_source_files)
+            if not new_source_files:
+                self.log_callback("log_no_yml_files_found", new_source_folder, file_identifier)
+                self.main_status_callback("status_no_files", task_type="translation")
+                return
+
+            self.log_callback("log_total_files_start", total_files_to_process)
+
+            for new_source_file in new_source_files:
+                if self.stop_event.is_set():
+                    break
+
+                try:
+                    rel_path = os.path.relpath(new_source_file, new_source_folder)
+                    
+                    # 기존 번역 파일 경로 계산
+                    dir_part = os.path.dirname(rel_path)
+                    source_name = os.path.basename(rel_path)
+                    translated_name = re.sub(
+                        re.escape(f"l_{source_lang_code}"), f"l_{target_lang_code}",
+                        source_name, count=1, flags=re.IGNORECASE
+                    )
+                    old_translation_file = os.path.join(old_translation_folder, dir_part, translated_name)
+
+                    # 출력 파일 경로
+                    if self.keep_identifier:
+                        output_name = source_name
+                    else:
+                        output_name = translated_name
+                    output_file = os.path.join(output_folder, dir_part, output_name)
+
+                    self._set_current_file_for_log(os.path.basename(new_source_file))
+
+                    if os.path.exists(old_translation_file):
+                        # 기존 번역이 있으면 병합 번역
+                        self._process_version_update_file(new_source_file, old_translation_file, output_file)
+                    else:
+                        # 기존 번역이 없으면 전체 번역
+                        self.log_callback("log_version_update_new_file", os.path.basename(new_source_file))
+                        self._process_single_file_core(new_source_file, output_file)
+
+                    completed_count += 1
+                    progress = completed_count / total_files_to_process
+                    self.main_progress_callback(completed_count, total_files_to_process, progress, "translation")
+
+                except Exception as e:
+                    self.log_callback("log_file_process_error", os.path.basename(new_source_file), str(e))
+
+            if self.stop_event.is_set():
+                self.log_callback("log_translation_stopped_by_user")
+            else:
+                self.log_callback("log_version_update_complete", completed_count, total_files_to_process)
+
+        except Exception as e:
+            if not self.stop_event.is_set():
+                self.log_callback("log_translation_process_error", str(e))
+        finally:
+            task_type = "translation"
+            if self.stop_event.is_set():
+                self.main_status_callback("status_stopped", completed_count, total_files_to_process, task_type=task_type)
+            elif completed_count == total_files_to_process and total_files_to_process > 0:
+                self.main_status_callback("status_completed_all", completed_count, total_files_to_process, task_type=task_type)
+            else:
+                self.main_status_callback("status_completed_some", completed_count, total_files_to_process, task_type=task_type)
+            self._set_current_file_for_log("")
+
+    def _process_version_update_file(self, new_source_file, old_translation_file, output_file):
+        """단일 파일의 버전 업데이트 번역 처리"""
+        self._set_current_file_for_log(os.path.basename(new_source_file))
+
+        try:
+            # 새 원본 파일 읽기
+            with codecs.open(new_source_file, 'r', encoding='utf-8-sig') as f:
+                new_source_lines = f.readlines()
+
+            # 기존 번역 파일 읽기
+            with codecs.open(old_translation_file, 'r', encoding='utf-8-sig') as f:
+                old_translated_lines = f.readlines()
+
+            # 기존 번역의 키-라인 매핑 생성
+            old_translated_map = {}
+            for line in old_translated_lines:
+                key = self._extract_yml_key(line)
+                if key:
+                    old_translated_map[key] = line
+
+            # 새 원본의 키-값 매핑 생성
+            new_source_map = {}
+            for line in new_source_lines:
+                key = self._extract_yml_key(line)
+                value = self._extract_yml_value(line)
+                if key:
+                    new_source_map[key] = value
+
+            # 번역이 필요한 라인과 기존 번역을 유지할 라인 분류
+            lines_to_translate = []
+            translate_indices = []
+            result_lines = []
+
+            # 언어 식별자 처리 (첫 번째 줄)
+            start_index = 0
+            if new_source_lines and self.lang_identifier_pattern.match(new_source_lines[0]):
+                if self.keep_identifier:
+                    result_lines.append(new_source_lines[0])
+                else:
+                    target_lang_code = self.get_language_code(self.target_lang_for_api)
+                    new_first_line = self.lang_identifier_pattern.sub(
+                        f"l_{target_lang_code}:", new_source_lines[0], count=1)
+                    result_lines.append(new_first_line)
+                start_index = 1
+
+            new_count = 0
+            changed_count = 0
+            reused_count = 0
+
+            for i in range(start_index, len(new_source_lines)):
+                line = new_source_lines[i]
+                key = self._extract_yml_key(line)
+                new_value = self._extract_yml_value(line)
+
+                if not key or not new_value:
+                    # 코멘트, 빈 줄 등은 그대로 유지
+                    result_lines.append(line)
+                    continue
+
+                if key in old_translated_map:
+                    # 기존 번역에 있는 키
+                    old_translated_line = old_translated_map[key]
+                    old_translated_value = self._extract_yml_value(old_translated_line)
+
+                    # 기존 번역값과 새 원본값이 다르면 번역이 되어 있는 것
+                    if old_translated_value and old_translated_value.strip() != new_value.strip():
+                        # 기존 번역 유지
+                        result_lines.append(old_translated_line)
+                        reused_count += 1
+                    else:
+                        # 원본과 번역이 같으면 미번역 → 새로 번역 필요
+                        result_lines.append(line)
+                        lines_to_translate.append(line)
+                        translate_indices.append(len(result_lines) - 1)
+                        changed_count += 1
+                else:
+                    # 새로 추가된 키 → 번역 필요
+                    result_lines.append(line)
+                    lines_to_translate.append(line)
+                    translate_indices.append(len(result_lines) - 1)
+                    new_count += 1
+
+            self.log_callback("log_version_update_stats", 
+                        os.path.basename(new_source_file),
+                        reused_count, new_count, changed_count)
+
+            # 번역이 필요한 라인이 있으면 배치 번역 수행
+            if lines_to_translate and not self.stop_event.is_set():
+                self.log_callback("log_version_update_translating", len(lines_to_translate))
+                
+                for batch_start in range(0, len(lines_to_translate), self.batch_size):
+                    if self.stop_event.is_set():
+                        break
+
+                    batch = lines_to_translate[batch_start:batch_start + self.batch_size]
+                    batch_indices = translate_indices[batch_start:batch_start + self.batch_size]
+
+                    translated_batch = self._translate_batch_core(batch)
+
+                    for j, idx in enumerate(batch_indices):
+                        if j < len(translated_batch):
+                            result_lines[idx] = translated_batch[j]
+
+                    if self.delay_between_batches > 0 and not self.stop_event.is_set():
+                        time.sleep(self.adaptive_delay)
+
+            # 결과 파일 저장
+            if not self.stop_event.is_set():
+                os.makedirs(os.path.dirname(output_file), exist_ok=True)
+                if os.path.exists(output_file):
+                    self.create_auto_backup(output_file)
+                with codecs.open(output_file, 'w', encoding='utf-8-sig') as f:
+                    f.writelines(result_lines)
+                self.log_callback("log_translation_complete_save", os.path.basename(output_file))
+
+        except Exception as e:
+            self.log_callback("log_file_process_error", os.path.basename(new_source_file), str(e))

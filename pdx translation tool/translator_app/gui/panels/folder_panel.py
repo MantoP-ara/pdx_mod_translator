@@ -30,6 +30,15 @@ class FolderPanel(ctk.CTkFrame):
         self.output_folder_button_widget.grid(row=2, column=2, padx=(5,10), pady=5)
         self.output_folder_button_tooltip = Tooltip(self.output_folder_button_widget, "")
 
+        self.old_translation_folder_label_widget = ctk.CTkLabel(self)
+        self.old_translation_folder_label_widget.grid(row=3, column=0, sticky="w", padx=10, pady=5)
+        self.old_translation_folder_entry_widget = ctk.CTkEntry(self, textvariable=self.main_app.old_translation_folder_var, placeholder_text="Old translation folder (for version update)")
+        self.old_translation_folder_entry_widget.grid(row=3, column=1, sticky="ew", padx=10, pady=5)
+        self.old_translation_folder_entry_tooltip = Tooltip(self.old_translation_folder_entry_widget, "")
+        self.old_translation_folder_button_widget = ctk.CTkButton(self, command=self.main_app.select_old_translation_folder, width=100)
+        self.old_translation_folder_button_widget.grid(row=3, column=2, padx=(5,10), pady=5)
+        self.old_translation_folder_button_tooltip = Tooltip(self.old_translation_folder_button_widget, "")
+
         self.update_language()
 
     def update_language(self):
@@ -43,3 +52,7 @@ class FolderPanel(ctk.CTkFrame):
         self.output_folder_entry_tooltip.update_text(texts.get("output_folder_tooltip"))
         self.output_folder_button_widget.configure(text=texts.get("browse_button"))
         self.output_folder_button_tooltip.update_text(texts.get("output_browse_tooltip"))
+        self.old_translation_folder_label_widget.configure(text=texts.get("old_translation_folder_label", "Old Translation:"))
+        self.old_translation_folder_entry_tooltip.update_text(texts.get("old_translation_folder_tooltip", "Select the folder containing previous translation files for version update translation."))
+        self.old_translation_folder_button_widget.configure(text=texts.get("browse_button"))
+        self.old_translation_folder_button_tooltip.update_text(texts.get("old_translation_browse_tooltip", "Select the old translation folder."))

@@ -373,6 +373,8 @@ class RetranslationWindow(ctk.CTkToplevel):
         engine.target_lang_for_api = self.main_app.target_lang_for_api_var.get()
         engine.prompt_template_str = self.main_app.prompt_glossary_panel.get_prompt_text() if hasattr(self.main_app, 'prompt_glossary_panel') else self.main_app.default_prompt_template_str
         engine.prefill_text = self.main_app.prompt_glossary_panel.get_prefill_text() if hasattr(self.main_app, 'prompt_glossary_panel') else ""
+        engine.system_instruction = self.main_app.prompt_glossary_panel.get_system_instruction_text() if hasattr(self.main_app, 'prompt_glossary_panel') else ""
+        engine.model_role_text = self.main_app.prompt_glossary_panel.get_model_role_text() if hasattr(self.main_app, 'prompt_glossary_panel') else ""
         engine.glossary_str_for_prompt = self.main_app._get_combined_glossary_content()
         engine.batch_size = self.main_app.batch_size_var.get()
         engine.max_tokens = self.main_app.max_tokens_var.get()
